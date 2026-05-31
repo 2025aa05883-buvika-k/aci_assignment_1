@@ -239,10 +239,10 @@ def astar_h1(grid, start, goal):
         start: None
     }
 
-    # Cost from start node to current node
+    # Cost from start node to current node, start node cost is given as 2
 
     g_cost = {
-        start: 0
+        start: get_cell_cost('S')
     }
 
     explored = []
