@@ -338,6 +338,37 @@ def astar_h1(grid, start, goal):
 
     return None
 
+def write_output(result, filename="outputPS4.txt"):
+
+    with open(filename, "w") as f:
+
+        f.write("===== A* RESULTS =====\n\n")
+
+        f.write(
+            f"Nodes Expanded: "
+            f"{result['nodes_expanded']}\n"
+        )
+
+        f.write(
+            f"Runtime (ms): "
+            f"{round(result['runtime_ms'],4)}\n"
+        )
+
+        f.write(
+            f"Path Length: "
+            f"{result['path_length']}\n"
+        )
+
+        f.write(
+            f"Path Cost: "
+            f"{result['path_cost']}\n"
+        )
+
+        f.write(
+            f"Path: "
+            f"{result['path']}\n"
+        )
+
 
 # ==================================================
 # MAIN DRIVER
@@ -459,6 +490,11 @@ if __name__ == "__main__":
         )
 
         if result:
+            write_output(result)
+
+            print(
+                "\nResults written to outputPS4.txt"
+            )
 
             print("\n===== A* RESULTS =====")
 
