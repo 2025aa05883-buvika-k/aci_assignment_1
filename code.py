@@ -208,6 +208,74 @@ def reconstruct_path(parent, goal):
 
     return path
 
+# ==================================================
+# GBFS 
+# ==================================================
+
+def gbfs_h1(grid, start, goal):
+
+    start_time = time.perf_counter()
+
+    open_list = []
+    heapq.heappush(open_list, (heuristic_h1(start, goal), start))
+
+    parent = {start: None}
+    visited = set()
+    explored = []
+    heuristic_values = {}
+    penalty = 0
+    nodes_expanded = 0
+
+    while open_list:
+
+        h, current = heapq.heappop(open_list)
+
+        if current in visited:
+            continue
+
+        visited.add(current)
+        explored.append(current)
+
+        heuristic_values[current] = h
+
+        nodes_expanded += 1
+
+        # Goal check
+        if current == goal:
+
+            runtime = (time.perf_counter() - start_time) * 1000
+
+            path = reconstruct_path(parent, goal)
+
+            return {
+                "path": path,
+                "nodes_expanded": nodes_expanded,
+                "runtime_ms": runtime,
+                "path_length": len(path) - 1,
+                "explored": explored,
+                "heuristic_values": heuristic_values,
+                "penalty": penalty
+            }
+
+        for neighbor in get_neighbors(current, grid):
+
+            if neighbor not in visited:
+
+                row, col = neighbor
+                cell = grid[row][col]
+
+                if cell == 'W':
+                    penalty += 4
+
+                parent[neighbor] = current
+
+                heapq.heappush(
+                    open_list,
+                    (heuristic_h1(neighbor, goal), neighbor)
+                )
+
+    return None
+
 
 # ==================================================
 # A* SEARCH USING HEURISTIC h1
@@ -475,10 +543,58 @@ if __name__ == "__main__":
     # Display grid
 
     print("\n===== UPDATED GRID =====")
+    
 
     for row in grid:
         print(" ".join(row))
+    # Run GBFS
 
+    if algorithm == "GBFS" and heuristic == "h1":
+    
+        result = gbfs_h1(
+            grid,
+            start,
+            goal
+        )
+    
+        if result:
+    
+            print("\n===== GBFS RESULTS =====")
+    
+            print(
+                "Nodes Expanded:",
+                result["nodes_expanded"]
+            )
+    
+            print(
+                "Runtime (ms):",
+                round(result["runtime_ms"], 4)
+            )
+    
+            print(
+                "Path Length:",
+                result["path_length"]
+            )
+    
+            print(
+                "Path:",
+                result["path"]
+            )
+    
+            print(
+                "Penalty:",
+                result["penalty"]
+            )
+    
+        else:
+    
+            print(
+                "Goal not reachable."
+            )
+        
+
+
+    
     # Run A*
 
     if algorithm == "A*" and heuristic == "h1":
