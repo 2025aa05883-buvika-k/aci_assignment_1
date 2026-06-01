@@ -369,6 +369,12 @@ def write_output(result, filename="outputPS4.txt"):
             f"{result['path']}\n"
         )
 
+        f.write(
+            f"Explored Nodes: "
+            f"{result['explored']}\n"
+        )
+
+
 
 # ==================================================
 # MAIN DRIVER
