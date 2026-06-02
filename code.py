@@ -410,7 +410,10 @@ def write_output(result, filename="outputPS4.txt"):
 
     with open(filename, "w") as f:
 
-        f.write("===== A* RESULTS =====\n\n")
+        if "path_cost" in result:
+            f.write("===== A* RESULTS =====\n\n")
+        else:
+            f.write("===== GBFS RESULTS =====\n\n")
 
         f.write(
             f"Nodes Expanded: "
@@ -426,16 +429,17 @@ def write_output(result, filename="outputPS4.txt"):
             f"Path Length: "
             f"{result['path_length']}\n"
         )
-
-        f.write(
-            f"Path Cost: "
-            f"{result['path_cost']}\n"
-        )
+        if "path_cost" in result:
+            f.write(
+                f"Path Cost: "
+                f"{result['path_cost']}\n"
+            )
 
         f.write(
             f"Path: "
             f"{result['path']}\n"
         )
+        
 
 
 # ==================================================
@@ -558,6 +562,7 @@ if __name__ == "__main__":
         )
     
         if result:
+            write_output(result, "outputGBFS_h1.txt") 
     
             print("\n===== GBFS RESULTS =====")
     
