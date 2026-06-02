@@ -105,8 +105,8 @@ def heuristic_h2(node, goal, grid):
         '.': 1,
         'W': 4,
         'N': 8,
-        'S': 1,
-        'E': 1
+        'S': 2,
+        'E': 2
     }
 
     row, col = node
@@ -239,6 +239,17 @@ def reconstruct_path(parent, goal):
 
     return path
 
+def calculate_penalty(path, grid):
+
+    penalty = 0
+
+    for row, col in path:
+
+        if grid[row][col] == 'W':
+            penalty += 4
+
+    return penalty
+
 # ==================================================
 # GBFS 
 # ==================================================
@@ -302,6 +313,11 @@ def gbfs_h2(grid, start, goal):
                 goal
             )
 
+            penalty = calculate_penalty(
+                path,
+                grid
+            )
+
             return {
                 "path": path,
                 "nodes_expanded": nodes_expanded,
@@ -319,13 +335,6 @@ def gbfs_h2(grid, start, goal):
 
             if neighbor not in visited:
 
-                row, col = neighbor
-
-                cell = grid[row][col]
-
-                if cell == 'W':
-                    penalty += 4
-
                 parent[neighbor] = current
 
                 heapq.heappush(
@@ -339,8 +348,6 @@ def gbfs_h2(grid, start, goal):
                         neighbor
                     )
                 )
-
-    return None
     
 # ==================================================
 # MAIN DRIVER
@@ -402,8 +409,25 @@ if __name__ == "__main__":
         DEFAULTS["TESTCASE_ID"]
     )
 
-    grid = [row[:] for row in GRID]
+    if heuristic not in ["h1", "h2"]:
 
+        print(
+            f"Warning: Invalid heuristic '{heuristic}'. "
+            f"Using 'h1'."
+        )
+
+        heuristic = "h1"
+
+    if algorithm not in ["GBFS", "A*"]:
+
+        print(
+            f"Warning: Invalid algorithm '{algorithm}'. "
+            f"Using 'GBFS'."
+        )
+
+        algorithm = "GBFS"
+
+    grid = [row[:] for row in GRID]
     grid = update_grid(
         grid,
         start,
