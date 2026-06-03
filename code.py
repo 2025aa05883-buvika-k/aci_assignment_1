@@ -229,6 +229,8 @@ def gbfs_h1(grid, start, goal):
     while open_list:
 
         h, current = heapq.heappop(open_list)
+        selected_node = current
+        frontier_snapshot = [node for _, node in open_list]
 
         if current in visited:
             continue
@@ -246,6 +248,15 @@ def gbfs_h1(grid, start, goal):
             runtime = (time.perf_counter() - start_time) * 1000
 
             path = reconstruct_path(parent, goal)
+            path_cost = 0
+            for node in path:
+                r, c = node
+                path_cost += get_cell_cost(grid[r][c])
+            penalty = 0
+            for node in path:
+                r, c = node
+                if grid[r][c] == 'W':
+                    penalty += 4
 
             return {
                 "path": path,
@@ -254,7 +265,10 @@ def gbfs_h1(grid, start, goal):
                 "path_length": len(path) - 1,
                 "explored": explored,
                 "heuristic_values": heuristic_values,
-                "penalty": penalty
+                "penalty": penalty,
+                "path_cost": path_cost,
+                "selected_nodes":explored,
+                "frontier":frontier_snapshot
             }
 
         for neighbor in get_neighbors(current, grid):
@@ -264,8 +278,6 @@ def gbfs_h1(grid, start, goal):
                 row, col = neighbor
                 cell = grid[row][col]
 
-                if cell == 'W':
-                    penalty += 4
 
                 parent[neighbor] = current
 
@@ -409,11 +421,10 @@ def astar_h1(grid, start, goal):
 def write_output(result, filename="outputPS4.txt"):
 
     with open(filename, "w") as f:
-
-        if "path_cost" in result:
-            f.write("===== A* RESULTS =====\n\n")
-        else:
+        if "heuristic_values" in result:
             f.write("===== GBFS RESULTS =====\n\n")
+        else:
+            f.write("===== A* RESULTS =====\n\n")
 
         f.write(
             f"Nodes Expanded: "
@@ -429,11 +440,22 @@ def write_output(result, filename="outputPS4.txt"):
             f"Path Length: "
             f"{result['path_length']}\n"
         )
+        f.write(f"Explored Nodes: {result['explored']}\n")
+        if "penalty" in result:
+            f.write(f"Penalty: {result['penalty']}\n")
+        if "heuristic_values" in result:
+            f.write(f"Heuristic Values: {result['heuristic_values']}\n")
+        if "frontier" in result:
+            f.write(f"Frontier: {result['frontier']}\n")
+
+        if "selected_nodes" in result:
+            f.write(f"Selected Nodes: {result['selected_nodes']}\n")
         if "path_cost" in result:
             f.write(
                 f"Path Cost: "
                 f"{result['path_cost']}\n"
             )
+        
 
         f.write(
             f"Path: "
@@ -562,7 +584,7 @@ if __name__ == "__main__":
         )
     
         if result:
-            write_output(result, "outputGBFS_h1.txt") 
+            write_output(result)
     
             print("\n===== GBFS RESULTS =====")
     
