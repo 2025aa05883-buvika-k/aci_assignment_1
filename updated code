@@ -239,17 +239,6 @@ def reconstruct_path(parent, goal):
 
     return path
 
-def calculate_penalty(path, grid):
-
-    penalty = 0
-
-    for row, col in path:
-
-        if grid[row][col] == 'W':
-            penalty += 4
-
-    return penalty
-
 # ==================================================
 # GBFS 
 # ==================================================
@@ -279,8 +268,6 @@ def gbfs_h2(grid, start, goal):
     explored = []
 
     heuristic_values = {}
-
-    penalty = 0
 
     nodes_expanded = 0
 
@@ -313,11 +300,6 @@ def gbfs_h2(grid, start, goal):
                 goal
             )
 
-            penalty = calculate_penalty(
-                path,
-                grid
-            )
-
             return {
                 "path": path,
                 "nodes_expanded": nodes_expanded,
@@ -325,7 +307,6 @@ def gbfs_h2(grid, start, goal):
                 "path_length": len(path) - 1,
                 "explored": explored,
                 "heuristic_values": heuristic_values,
-                "penalty": penalty
             }
 
         for neighbor in get_neighbors(
@@ -348,7 +329,8 @@ def gbfs_h2(grid, start, goal):
                         neighbor
                     )
                 )
-    
+
+    return None
 # ==================================================
 # MAIN DRIVER
 # ==================================================
@@ -482,11 +464,6 @@ if __name__ == "__main__":
             print(
                 "Path:",
                 result["path"]
-            )
-
-            print(
-                "Penalty:",
-                result["penalty"]
             )
 
         else:
