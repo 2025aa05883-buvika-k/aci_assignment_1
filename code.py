@@ -256,7 +256,7 @@ def gbfs_h1(grid, start, goal):
             for node in path:
                 r, c = node
                 if grid[r][c] == 'W':
-                    penalty += 4
+                    penalty += 8
 
             return {
                 "path": path,
@@ -267,7 +267,6 @@ def gbfs_h1(grid, start, goal):
                 "heuristic_values": heuristic_values,
                 "penalty": penalty,
                 "path_cost": path_cost,
-                "selected_nodes":explored,
                 "frontier":frontier_snapshot
             }
 
@@ -448,8 +447,6 @@ def write_output(result, filename="outputPS4.txt"):
         if "frontier" in result:
             f.write(f"Frontier: {result['frontier']}\n")
 
-        if "selected_nodes" in result:
-            f.write(f"Selected Nodes: {result['selected_nodes']}\n")
         if "path_cost" in result:
             f.write(
                 f"Path Cost: "
