@@ -5,6 +5,7 @@
 import math
 import heapq
 import time
+import sys
 
 
 # ==================================================
@@ -96,7 +97,7 @@ def update_grid(grid, start, goal):
 
 
 # ==================================================
-# HEURISTIC FUNCTION (h1)
+# HEURISTIC FUNCTIONS
 # ==================================================
 
 def heuristic_h1(node, goal):
@@ -109,6 +110,58 @@ def heuristic_h1(node, goal):
     return math.sqrt(
         (goal[0] - node[0]) ** 2 +
         (goal[1] - node[1]) ** 2
+    )
+
+
+def heuristic_h2(node, goal, grid):
+    """
+    Bounding Box Risk Weighted Heuristic
+
+    h2 = Manhattan Distance × Average Window Cost
+    
+    Professor clarification: 'N' cells contribute risk score 8
+    inside the bounding-box average even though they are not traversable.
+    """
+
+    cost_map = {
+        '.': 1,
+        'W': 4,
+        'N': 8,  # Risk/no-fly weighting
+        'S': 2,
+        'E': 2
+    }
+
+    row, col = node
+    goal_row, goal_col = goal
+
+    manhattan_distance = (
+        abs(row - goal_row)
+        + abs(col - goal_col)
+    )
+
+    row_start = min(row, goal_row)
+    row_end = max(row, goal_row)
+
+    col_start = min(col, goal_col)
+    col_end = max(col, goal_col)
+
+    total_cost = 0
+    total_cells = 0
+
+    for r in range(row_start, row_end + 1):
+        for c in range(col_start, col_end + 1):
+
+            total_cost += cost_map[
+                grid[r][c]
+            ]
+
+            total_cells += 1
+
+    average_cost = total_cost / total_cells
+
+    return round(
+        manhattan_distance * average_cost,
+        2
     )
 
 
@@ -209,13 +262,216 @@ def reconstruct_path(parent, goal):
     return path
 
 
+def calculate_path_cost(path, grid):
+    """
+    Calculates total traversal cost of a path.
+    
+    Sums up the cost of each cell in the path.
+    """
+    
+    cost = 0
+    
+    for r, c in path:
+        cost += get_cell_cost(grid[r][c])
+    
+    return cost
+
+
+def calculate_penalty(path, grid):
+    """
+    Calculates penalty for encountering weather hazard (W) cells.
+    
+    Each 'W' cell in the path contributes 4 to the penalty.
+    """
+    
+    penalty = 0
+    
+    for r, c in path:
+        if grid[r][c] == 'W':
+            penalty += 4
+    
+    return penalty
+
+
+def display_iteration_grid(grid, current, frontier, explored):
+    """
+    Visualizes the grid for the current search iteration.
+    """
+    grid_copy = [row[:] for row in grid]
+
+    for r, c in explored:
+        if grid_copy[r][c] not in ('S', 'E', 'N', 'W'):
+            grid_copy[r][c] = 'o'
+
+    for r, c in frontier:
+        if grid_copy[r][c] not in ('S', 'E', 'N', 'W'):
+            grid_copy[r][c] = 'f'
+
+    if grid_copy[current[0]][current[1]] not in ('S', 'E', 'N', 'W'):
+        grid_copy[current[0]][current[1]] = 'X'
+
+    print("\n===== ITERATION GRID =====")
+    for row in grid_copy:
+        print(" ".join(row))
+    print(f"Selected Node: {current}")
+    print(f"Frontier Nodes: {frontier}")
+    print(f"Explored Nodes: {explored}")
+
+
+def count_weather_hazards(path, grid):
+    """
+    Counts the number of weather hazard cells crossed.
+    """
+    
+    count = 0
+    
+    for r, c in path:
+        if grid[r][c] == 'W':
+            count += 1
+    
+    return count
+
+
+def count_no_fly_zones(path, grid):
+    """
+    Counts the number of no-fly zone cells crossed.
+    """
+    
+    count = 0
+    
+    for r, c in path:
+        if grid[r][c] == 'N':
+            count += 1
+    
+    return count
+
+
+def display_path_grid(grid, path):
+    """
+    Prints the grid showing the path with '*' markers.
+    """
+    grid_copy = [row[:] for row in grid]
+
+    for r, c in path:
+        if grid_copy[r][c] not in ('S', 'E'):
+            grid_copy[r][c] = '*'
+
+    print("\n===== PATH GRID =====")
+    for row in grid_copy:
+        print(" ".join(row))
+
+
+# ==================================================
+# GBFS WITH HEURISTIC h1
+# ==================================================
+
+def gbfs_h1(grid, start, goal):
+    """
+    Greedy Best First Search using Euclidean Distance heuristic.
+    """
+
+    start_time = time.perf_counter()
+
+    open_list = []
+    tie_break = 0
+    heapq.heappush(open_list, (heuristic_h1(start, goal), tie_break, start))
+    tie_break += 1
+
+    parent = {start: None}
+    visited = set()
+    explored = []
+    heuristic_values = {}
+    nodes_expanded = 0
+    final_frontier = []
+    frontier_history = []
+    selected_nodes = []
+    memory_usage = 0
+    frontier_seen = set()
+    trap_logs = []
+
+    while open_list:
+
+        h, _, current = heapq.heappop(open_list)
+        selected_nodes.append(current)
+
+        if current in visited:
+            continue
+
+        visited.add(current)
+        explored.append(current)
+
+        heuristic_values[current] = h
+        nodes_expanded += 1
+        memory_usage = max(memory_usage, len(open_list) + len(visited))
+
+        # Goal check
+        if current == goal:
+
+            runtime = (time.perf_counter() - start_time) * 1000
+
+            path = reconstruct_path(parent, goal)
+            path_cost = calculate_path_cost(path, grid)
+            weather_count = count_weather_hazards(path, grid)
+            penalty = calculate_penalty(path, grid)
+            no_fly_zones_crossed = count_no_fly_zones(path, grid)
+            final_frontier = [node for _, _, node in open_list]
+
+            return {
+                "path": path,
+                "nodes_expanded": nodes_expanded,
+                "runtime_ms": runtime,
+                "path_length": len(path) - 1,
+                "path_cost": path_cost,
+                "explored": explored,
+                "heuristic_values": heuristic_values,
+                "penalty": penalty,
+                "weather_count": weather_count,
+                "no_fly_zones_crossed": no_fly_zones_crossed,
+                "memory_usage": memory_usage,
+                "frontier": final_frontier,
+                "frontier_history": frontier_history,
+                "selected_nodes": selected_nodes,
+                "trap_logs": trap_logs
+            }
+
+        for neighbor in get_neighbors(current, grid):
+
+            if neighbor not in visited:
+                # Only set parent if not already set (avoid overwrite)
+                if neighbor not in parent:
+                    parent[neighbor] = current
+
+                    heapq.heappush(
+                        open_list,
+                        (heuristic_h1(neighbor, goal), tie_break, neighbor)
+                    )
+                    tie_break += 1
+                    frontier_history.append(
+                        [node for _, _, node in open_list]
+                    )
+                    memory_usage = max(memory_usage, len(open_list) + len(visited))
+
+        # Visualize current iteration and trap detection
+        current_frontier = [node for _, _, node in open_list]
+        display_iteration_grid(grid, current, current_frontier, explored)
+        frontier_set = frozenset(current_frontier)
+        if frontier_set in frontier_seen:
+            trap_logs.append(
+                f"Iteration {nodes_expanded}: repeated frontier set after selecting {current}"
+            )
+        else:
+            frontier_seen.add(frontier_set)
+
+    return None
+
+
 # ==================================================
 # A* SEARCH USING HEURISTIC h1
 # ==================================================
 
 def astar_h1(grid, start, goal):
     """
-    A* Search
+    A* Search with Euclidean Distance heuristic
 
     f(n) = g(n) + h(n)
 
@@ -226,18 +482,23 @@ def astar_h1(grid, start, goal):
     start_time = time.perf_counter()
 
     open_list = []
+    tie_break = 0
 
     heapq.heappush(
         open_list,
         (
             heuristic_h1(start, goal),
+            tie_break,
             start
         )
     )
+    tie_break += 1
 
     parent = {
         start: None
     }
+    frontier_seen = set()
+    trap_logs = []
 
     # Cost from start node to current node, start node cost is given as 2
 
@@ -250,12 +511,17 @@ def astar_h1(grid, start, goal):
     closed_set = set()
 
     nodes_expanded = 0
+    final_frontier = []
+    frontier_history = []
+    selected_nodes = []
+    memory_usage = 0
 
     while open_list:
 
-        current_f, current = heapq.heappop(
+        current_f, _, current = heapq.heappop(
             open_list
         )
+        selected_nodes.append(current)
 
         # Skip already expanded nodes
 
@@ -267,6 +533,7 @@ def astar_h1(grid, start, goal):
         explored.append(current)
 
         nodes_expanded += 1
+        memory_usage = max(memory_usage, len(open_list) + len(closed_set))
 
         # Goal Test
 
@@ -281,14 +548,29 @@ def astar_h1(grid, start, goal):
                 parent,
                 goal
             )
+            
+            path_cost = g_cost[goal]
+            weather_count = count_weather_hazards(path, grid)
+            penalty = calculate_penalty(path, grid)
+            no_fly_zones_crossed = count_no_fly_zones(path, grid)
+            final_frontier = [node for _, _, node in open_list]
 
             return {
                 "path": path,
                 "nodes_expanded": nodes_expanded,
                 "runtime_ms": runtime,
-                "explored": explored,
                 "path_length": len(path) - 1,
-                "path_cost": g_cost[goal]
+                "path_cost": path_cost,
+                "explored": explored,
+                "heuristic_values": {},
+                "penalty": penalty,
+                "weather_count": weather_count,
+                "no_fly_zones_crossed": no_fly_zones_crossed,
+                "memory_usage": memory_usage,
+                "frontier": final_frontier,
+                "frontier_history": frontier_history,
+                "selected_nodes": selected_nodes,
+                "trap_logs": trap_logs
             }
 
         # Explore neighbors
@@ -330,19 +612,47 @@ def astar_h1(grid, start, goal):
                     open_list,
                     (
                         f,
+                        tie_break,
                         neighbor
                     )
                 )
+                tie_break += 1
+                frontier_history.append(
+                    [node for _, _, node in open_list]
+                )
+                memory_usage = max(memory_usage, len(open_list) + len(closed_set))
+
+        current_frontier = [node for _, _, node in open_list]
+        display_iteration_grid(grid, current, current_frontier, explored)
+        frontier_set = frozenset(current_frontier)
+        if frontier_set in frontier_seen:
+            trap_logs.append(
+                f"Iteration {nodes_expanded}: repeated frontier set after selecting {current}"
+            )
+        else:
+            frontier_seen.add(frontier_set)
 
     # Goal not reachable
 
     return None
 
+
+# ==================================================
+# OUTPUT WRITING
+# ==================================================
+
 def write_output(result, filename="outputPS4.txt"):
+    """
+    Writes search results to output file.
+    """
 
     with open(filename, "w") as f:
-
-        f.write("===== A* RESULTS =====\n\n")
+        
+        # Determine algorithm type
+        if "heuristic_values" in result and result["heuristic_values"]:
+            f.write("===== GBFS RESULTS =====\n\n")
+        else:
+            f.write("===== A* RESULTS =====\n\n")
 
         f.write(
             f"Nodes Expanded: "
@@ -351,7 +661,7 @@ def write_output(result, filename="outputPS4.txt"):
 
         f.write(
             f"Runtime (ms): "
-            f"{round(result['runtime_ms'],4)}\n"
+            f"{round(result['runtime_ms'], 4)}\n"
         )
 
         f.write(
@@ -365,6 +675,55 @@ def write_output(result, filename="outputPS4.txt"):
         )
 
         f.write(
+            f"Memory Usage: "
+            f"{result['memory_usage']}\n"
+        )
+
+        f.write(
+            f"Weather Hazard Zones Crossed: "
+            f"{result['weather_count']}\n"
+        )
+
+        f.write(
+            f"Penalty Incurred: "
+            f"{result['penalty']}\n"
+        )
+
+        f.write(
+            f"No-Fly Zones Crossed: "
+            f"{result['no_fly_zones_crossed']}\n"
+        )
+
+        if result.get("heuristic_values"):
+            f.write(
+                f"Heuristic Values: "
+                f"{result['heuristic_values']}\n"
+            )
+
+        if result.get("frontier_history"):
+            f.write(
+                f"Frontier History: "
+                f"{result['frontier_history']}\n"
+            )
+
+        f.write(
+            f"Selected Nodes: "
+            f"{result['selected_nodes']}\n"
+        )
+
+        if result.get("frontier"):
+            f.write(
+                f"Frontier: "
+                f"{result['frontier']}\n"
+            )
+
+        if result.get("trap_logs"):
+            f.write(
+                f"Trap Logs: "
+                f"{result['trap_logs']}\n"
+            )
+
+        f.write(
             f"Path: "
             f"{result['path']}\n"
         )
@@ -374,68 +733,28 @@ def write_output(result, filename="outputPS4.txt"):
             f"{result['explored']}\n"
         )
 
-# ==================================================
-# HEURISTIC FUNCTION (h2)
-# ==================================================
+        f.write(
+            f"Time Complexity: O(V log V)\n"
+        )
 
-def heuristic_h2(node, goal, grid):
-    """
-    Bounding Box Risk Weighted Heuristic
-
-    h2 = Manhattan Distance × Average Window Cost
-    """
-
-    cost_map = {
-        '.': 1,
-        'W': 4,
-        'N': 8,
-        'S': 2,
-        'E': 2
-    }
-
-    row, col = node
-    goal_row, goal_col = goal
-
-    manhattan_distance = (
-        abs(row - goal_row)
-        + abs(col - goal_col)
-    )
-
-    row_start = min(row, goal_row)
-    row_end = max(row, goal_row)
-
-    col_start = min(col, goal_col)
-    col_end = max(col, goal_col)
-
-    total_cost = 0
-    total_cells = 0
-
-    for r in range(row_start, row_end + 1):
-        for c in range(col_start, col_end + 1):
-
-            total_cost += cost_map[
-                grid[r][c]
-            ]
-
-            total_cells += 1
-
-    average_cost = total_cost / total_cells
-
-    return round(
-        manhattan_distance * average_cost,
-        2
-    )
+        f.write(
+            f"Space Complexity: O(V)\n"
+        )
 
 
 # ==================================================
-# GBFS-H2
+# GBFS WITH HEURISTIC h2
 # ==================================================
 
 def gbfs_h2(grid, start, goal):
+    """
+    Greedy Best First Search using Bounding Box Risk Weighted heuristic.
+    """
 
     start_time = time.perf_counter()
 
     open_list = []
+    tie_break = 0
 
     heapq.heappush(
         open_list,
@@ -445,9 +764,11 @@ def gbfs_h2(grid, start, goal):
                 goal,
                 grid
             ),
+            tie_break,
             start
         )
     )
+    tie_break += 1
 
     parent = {start: None}
 
@@ -456,14 +777,21 @@ def gbfs_h2(grid, start, goal):
     explored = []
 
     heuristic_values = {}
+    frontier_seen = set()
+    trap_logs = []
 
     nodes_expanded = 0
+    final_frontier = []
+    frontier_history = []
+    selected_nodes = []
+    memory_usage = 0
 
     while open_list:
 
-        h, current = heapq.heappop(
+        h, _, current = heapq.heappop(
             open_list
         )
+        selected_nodes.append(current)
 
         if current in visited:
             continue
@@ -475,6 +803,7 @@ def gbfs_h2(grid, start, goal):
         heuristic_values[current] = h
 
         nodes_expanded += 1
+        memory_usage = max(memory_usage, len(open_list) + len(visited))
 
         if current == goal:
 
@@ -487,14 +816,29 @@ def gbfs_h2(grid, start, goal):
                 parent,
                 goal
             )
+            
+            path_cost = calculate_path_cost(path, grid)
+            weather_count = count_weather_hazards(path, grid)
+            penalty = calculate_penalty(path, grid)
+            no_fly_zones_crossed = count_no_fly_zones(path, grid)
+            final_frontier = [node for _, _, node in open_list]
 
             return {
                 "path": path,
                 "nodes_expanded": nodes_expanded,
                 "runtime_ms": runtime,
                 "path_length": len(path) - 1,
+                "path_cost": path_cost,
                 "explored": explored,
                 "heuristic_values": heuristic_values,
+                "penalty": penalty,
+                "weather_count": weather_count,
+                "no_fly_zones_crossed": no_fly_zones_crossed,
+                "memory_usage": memory_usage,
+                "frontier": final_frontier,
+                "frontier_history": frontier_history,
+                "selected_nodes": selected_nodes,
+                "trap_logs": trap_logs
             }
 
         for neighbor in get_neighbors(
@@ -503,20 +847,37 @@ def gbfs_h2(grid, start, goal):
         ):
 
             if neighbor not in visited:
+                # Only set parent if not already set (avoid overwrite)
+                if neighbor not in parent:
+                    parent[neighbor] = current
 
-                parent[neighbor] = current
-
-                heapq.heappush(
-                    open_list,
-                    (
-                        heuristic_h2(
-                            neighbor,
-                            goal,
-                            grid
-                        ),
-                        neighbor
+                    heapq.heappush(
+                        open_list,
+                        (
+                            heuristic_h2(
+                                neighbor,
+                                goal,
+                                grid
+                            ),
+                            tie_break,
+                            neighbor
+                        )
                     )
-                )
+                    tie_break += 1
+                    frontier_history.append(
+                        [node for _, _, node in open_list]
+                    )
+                    memory_usage = max(memory_usage, len(open_list) + len(visited))
+
+        current_frontier = [node for _, _, node in open_list]
+        display_iteration_grid(grid, current, current_frontier, explored)
+        frontier_set = frozenset(current_frontier)
+        if frontier_set in frontier_seen:
+            trap_logs.append(
+                f"Iteration {nodes_expanded}: repeated frontier set after selecting {current}"
+            )
+        else:
+            frontier_seen.add(frontier_set)
 
     return None
 
@@ -602,6 +963,32 @@ if __name__ == "__main__":
 
         algorithm = "GBFS"
 
+    # Validate start and goal coordinates
+
+    if not (
+        0 <= start[0] < len(GRID)
+        and
+        0 <= start[1] < len(GRID[0])
+    ):
+        print("Error: Start coordinates are out of bounds.")
+        sys.exit(1)
+
+    if not (
+        0 <= goal[0] < len(GRID)
+        and
+        0 <= goal[1] < len(GRID[0])
+    ):
+        print("Error: Goal coordinates are out of bounds.")
+        sys.exit(1)
+
+    if GRID[start[0]][start[1]] == 'N':
+        print("Error: Start node cannot be placed on a no-fly zone.")
+        sys.exit(1)
+
+    if GRID[goal[0]][goal[1]] == 'N':
+        print("Error: Goal node cannot be placed on a no-fly zone.")
+        sys.exit(1)
+
     # Create working copy of grid
 
     grid = [row[:] for row in GRID]
@@ -629,24 +1016,21 @@ if __name__ == "__main__":
     for row in grid:
         print(" ".join(row))
 
-    # Run A*
+    # ==================================================
+    # ALGORITHM DISPATCH (CLEAN)
+    # ==================================================
 
-    if algorithm == "A*" and heuristic == "h1":
+    result = None
 
-        result = astar_h1(
-            grid,
-            start,
-            goal
-        )
+    # GBFS with h1
+    if algorithm == "GBFS" and heuristic == "h1":
+
+        result = gbfs_h1(grid, start, goal)
 
         if result:
             write_output(result)
 
-            print(
-                "\nResults written to outputPS4.txt"
-            )
-
-            print("\n===== A* RESULTS =====")
+            print("\n===== GBFS-H1 RESULTS =====")
 
             print(
                 "Nodes Expanded:",
@@ -655,10 +1039,7 @@ if __name__ == "__main__":
 
             print(
                 "Runtime (ms):",
-                round(
-                    result["runtime_ms"],
-                    4
-                )
+                round(result["runtime_ms"], 4)
             )
 
             print(
@@ -672,26 +1053,60 @@ if __name__ == "__main__":
             )
 
             print(
+                "Memory Usage:",
+                result["memory_usage"]
+            )
+
+            print(
+                "Weather Hazard Zones Crossed:",
+                result["weather_count"]
+            )
+
+            print(
+                "Penalty Incurred:",
+                result["penalty"]
+            )
+
+            print(
+                "No-Fly Zones Crossed:",
+                result["no_fly_zones_crossed"]
+            )
+
+            print(
+                "Selected Nodes:",
+                result["selected_nodes"]
+            )
+
+            print(
+                "Frontier History:",
+                result["frontier_history"]
+            )
+
+            print(
                 "Path:",
                 result["path"]
             )
 
-        else:
+            display_path_grid(grid, result["path"])
 
             print(
-                "Goal not reachable."
+                "Time Complexity: O(V log V)"
             )
-    # Run GBFS-H2
 
+            print(
+                "Space Complexity: O(V)"
+            )
+
+        else:
+            print("Goal not reachable.")
+
+    # GBFS with h2
     elif algorithm == "GBFS" and heuristic == "h2":
 
-        result = gbfs_h2(
-            grid,
-            start,
-            goal
-        )
+        result = gbfs_h2(grid, start, goal)
 
         if result:
+            write_output(result)
 
             print("\n===== GBFS-H2 RESULTS =====")
 
@@ -702,10 +1117,7 @@ if __name__ == "__main__":
 
             print(
                 "Runtime (ms):",
-                round(
-                    result["runtime_ms"],
-                    4
-                )
+                round(result["runtime_ms"], 4)
             )
 
             print(
@@ -714,12 +1126,137 @@ if __name__ == "__main__":
             )
 
             print(
+                "Path Cost:",
+                result["path_cost"]
+            )
+
+            print(
+                "Memory Usage:",
+                result["memory_usage"]
+            )
+
+            print(
+                "Weather Hazard Zones Crossed:",
+                result["weather_count"]
+            )
+
+            print(
+                "Penalty Incurred:",
+                result["penalty"]
+            )
+
+            print(
+                "No-Fly Zones Crossed:",
+                result["no_fly_zones_crossed"]
+            )
+
+            print(
+                "Selected Nodes:",
+                result["selected_nodes"]
+            )
+
+            print(
+                "Frontier History:",
+                result["frontier_history"]
+            )
+
+            print(
                 "Path:",
                 result["path"]
             )
 
-        else:
+            display_path_grid(grid, result["path"])
 
             print(
-                "Goal not reachable."
+                "Time Complexity: O(V log V)"
             )
+
+            print(
+                "Space Complexity: O(V)"
+            )
+
+        else:
+            print("Goal not reachable.")
+
+    # A* with h1
+    elif algorithm == "A*" and heuristic == "h1":
+
+        result = astar_h1(grid, start, goal)
+
+        if result:
+            write_output(result)
+
+            print("\n===== A*-H1 RESULTS =====")
+
+            print(
+                "Nodes Expanded:",
+                result["nodes_expanded"]
+            )
+
+            print(
+                "Runtime (ms):",
+                round(result["runtime_ms"], 4)
+            )
+
+            print(
+                "Path Length:",
+                result["path_length"]
+            )
+
+            print(
+                "Path Cost:",
+                result["path_cost"]
+            )
+
+            print(
+                "Memory Usage:",
+                result["memory_usage"]
+            )
+
+            print(
+                "Weather Hazard Zones Crossed:",
+                result["weather_count"]
+            )
+
+            print(
+                "Penalty Incurred:",
+                result["penalty"]
+            )
+
+            print(
+                "No-Fly Zones Crossed:",
+                result["no_fly_zones_crossed"]
+            )
+
+            print(
+                "Selected Nodes:",
+                result["selected_nodes"]
+            )
+
+            print(
+                "Frontier History:",
+                result["frontier_history"]
+            )
+
+            print(
+                "Path:",
+                result["path"]
+            )
+
+            display_path_grid(grid, result["path"])
+
+            print(
+                "Time Complexity: O(V log V)"
+            )
+
+            print(
+                "Space Complexity: O(V)"
+            )
+
+        else:
+            print("Goal not reachable.")
+
+    if result:
+        print(
+            "\nResults written to outputPS4.txt"
+        )
