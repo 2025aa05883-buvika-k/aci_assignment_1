@@ -464,6 +464,144 @@ def gbfs_h1(grid, start, goal):
 
     return None
 
+# ==================================================
+# GBFS WITH HEURISTIC h2
+# ==================================================
+
+def gbfs_h2(grid, start, goal):
+    """
+    Greedy Best First Search using Bounding Box Risk Weighted heuristic.
+    """
+
+    start_time = time.perf_counter()
+
+    open_list = []
+    tie_break = 0
+
+    heapq.heappush(
+        open_list,
+        (
+            heuristic_h2(
+                start,
+                goal,
+                grid
+            ),
+            tie_break,
+            start
+        )
+    )
+    tie_break += 1
+
+    parent = {start: None}
+
+    visited = set()
+
+    explored = []
+
+    heuristic_values = {}
+    frontier_seen = set()
+    trap_logs = []
+
+    nodes_expanded = 0
+    final_frontier = []
+    frontier_history = []
+    selected_nodes = []
+    memory_usage = 0
+
+    while open_list:
+
+        h, _, current = heapq.heappop(
+            open_list
+        )
+        selected_nodes.append(current)
+
+        if current in visited:
+            continue
+
+        visited.add(current)
+
+        explored.append(current)
+
+        heuristic_values[current] = h
+
+        nodes_expanded += 1
+        memory_usage = max(memory_usage, len(open_list) + len(visited))
+
+        if current == goal:
+
+            runtime = (
+                time.perf_counter()
+                - start_time
+            ) * 1000
+
+            path = reconstruct_path(
+                parent,
+                goal
+            )
+            
+            path_cost = calculate_path_cost(path, grid)
+            weather_count = count_weather_hazards(path, grid)
+            penalty = calculate_penalty(path, grid)
+            no_fly_zones_crossed = count_no_fly_zones(path, grid)
+            final_frontier = [node for _, _, node in open_list]
+
+            return {
+                "path": path,
+                "nodes_expanded": nodes_expanded,
+                "runtime_ms": runtime,
+                "path_length": len(path) - 1,
+                "path_cost": path_cost,
+                "explored": explored,
+                "heuristic_values": heuristic_values,
+                "penalty": penalty,
+                "weather_count": weather_count,
+                "no_fly_zones_crossed": no_fly_zones_crossed,
+                "memory_usage": memory_usage,
+                "frontier": final_frontier,
+                "frontier_history": frontier_history,
+                "selected_nodes": selected_nodes,
+                "trap_logs": trap_logs
+            }
+
+        for neighbor in get_neighbors(
+            current,
+            grid
+        ):
+
+            if neighbor not in visited:
+                # Only set parent if not already set (avoid overwrite)
+                if neighbor not in parent:
+                    parent[neighbor] = current
+
+                    heapq.heappush(
+                        open_list,
+                        (
+                            heuristic_h2(
+                                neighbor,
+                                goal,
+                                grid
+                            ),
+                            tie_break,
+                            neighbor
+                        )
+                    )
+                    tie_break += 1
+                    frontier_history.append(
+                        [node for _, _, node in open_list]
+                    )
+                    memory_usage = max(memory_usage, len(open_list) + len(visited))
+
+        current_frontier = [node for _, _, node in open_list]
+        display_iteration_grid(grid, current, current_frontier, explored)
+        frontier_set = frozenset(current_frontier)
+        if frontier_set in frontier_seen:
+            trap_logs.append(
+                f"Iteration {nodes_expanded}: repeated frontier set after selecting {current}"
+            )
+        else:
+            frontier_seen.add(frontier_set)
+
+    return None
 
 # ==================================================
 # A* SEARCH USING HEURISTIC h1
@@ -635,13 +773,108 @@ def astar_h1(grid, start, goal):
     # Goal not reachable
 
     return None
+## ==================================================
+## PERFORMANCE WRAPPER
+## ==================================================
 
+def run_algorithm(algorithm_func, grid, start, goal, algo_name):
+    """
+    Wrapper to capture execution time, nodes expanded and completeness.
+    """
+    start_time = time.perf_counter()
+
+    try:
+        result = algorithm_func(grid, start, goal)
+
+        end_time = time.perf_counter()
+
+        # Assumption: result contains path and nodes expanded
+        #path = result.get("path", [])
+        nodes_expanded = result.get("nodes_expanded", 0)
+
+        return {
+            "Algorithm": algo_name,
+            "Completed": "Yes (Optimal & Complete)" if algo_name.startswith("A*") else "No (Heuristic-based, Not Guaranteed)",
+            "Nodes Expanded": nodes_expanded,
+            "Time Taken (ms)": round((end_time - start_time) * 1000, 6)
+        }
+
+    except Exception as e:
+        return {
+            "Algorithm": algo_name,
+            "Completed": False,
+            "Nodes Expanded": 0,
+            "Time Taken (ms)": 0
+        }
+## ==================================================
+## ALGORITHM COMPARISON
+## ==================================================
+
+def compare_algorithms(grid, start, goal):
+    """
+    Runs GBFS (h1), GBFS (h2), and A* (h1) and compares them.
+    """
+
+    results = []
+
+    results.append(run_algorithm(gbfs_h1, grid, start, goal, "GBFS (h1)"))
+    results.append(run_algorithm(gbfs_h2, grid, start, goal, "GBFS (h2)"))
+    results.append(run_algorithm(astar_h1, grid, start, goal, "A* (h1)"))
+
+    return results
+
+## ==================================================
+## FORMAT OUTPUT TABLE
+## ==================================================
+
+def format_results_table(results):
+
+    results = results if isinstance(results, list) else [results]
+
+    header = f"{'Algorithm':<15}{'Complete':<40}{'Nodes Expanded':<18}{'Time (ms)':<12}\n"
+    header += "-" * 85 + "\n"
+
+    rows = ""
+    for res in results:
+        rows += f"{res.get('Algorithm','N/A'):<15}{res.get('Completed','N/A'):<40}{res.get('Nodes Expanded','N/A'):<18}{res.get('Time Taken (ms)','N/A'):<12}\n"
+
+    return header + rows
+
+## ==================================================
+## ANALYSIS SUMMARY
+## ==================================================
+
+def generate_analysis(results):
+
+    results = results if isinstance(results, list) else [results]
+
+    analysis = "\n\n======== ANALYSIS ========\n"
+
+    # a. Completeness
+    complete_algos = [r.get("Algorithm") for r in results if "Yes" in str(r.get("Completed"))]
+
+    if complete_algos:
+        analysis += "\n(a) Complete Algorithm:\n"
+        for algo in complete_algos:
+            analysis += f"    {algo} is complete as it guarantees reaching the goal using cost + heuristic.\n"
+    else:
+        analysis += "\n(a) No algorithm guaranteed completeness\n"
+
+    # b. Nodes Expanded
+    min_nodes = min(results, key=lambda x: x.get("Nodes Expanded", float('inf')))
+    analysis += f"\n(b) Least Nodes Expanded: {min_nodes.get('Algorithm','N/A')}\n"
+
+    # c. Fastest
+    fastest = min(results, key=lambda x: x.get("Time Taken (ms)", float('inf')))
+    analysis += f"(c) Fastest Algorithm: {fastest.get('Algorithm','N/A')}\n"
+
+    return analysis
 
 # ==================================================
 # OUTPUT WRITING
 # ==================================================
 
-def write_output(result, filename="outputPS4.txt"):
+def write_output(results, filename="outputPS4.txt"):
     """
     Writes search results to output file.
     """
@@ -734,152 +967,26 @@ def write_output(result, filename="outputPS4.txt"):
         )
 
         f.write(
-            f"Time Complexity: O(V log V)\n"
+            "Time Complexity: O(V log V)\n"
         )
 
         f.write(
-            f"Space Complexity: O(V)\n"
+            "Space Complexity: O(V)\n\n"
         )
+     
+
+        output_text = ""
+
+        output_text += "=== Algorithm Comparison Results ===\n\n"
+        output_text += format_results_table(results)
+        output_text += generate_analysis(results)
+
+    
+        f.write(output_text)
+
+    print("\n" + output_text)
 
 
-# ==================================================
-# GBFS WITH HEURISTIC h2
-# ==================================================
-
-def gbfs_h2(grid, start, goal):
-    """
-    Greedy Best First Search using Bounding Box Risk Weighted heuristic.
-    """
-
-    start_time = time.perf_counter()
-
-    open_list = []
-    tie_break = 0
-
-    heapq.heappush(
-        open_list,
-        (
-            heuristic_h2(
-                start,
-                goal,
-                grid
-            ),
-            tie_break,
-            start
-        )
-    )
-    tie_break += 1
-
-    parent = {start: None}
-
-    visited = set()
-
-    explored = []
-
-    heuristic_values = {}
-    frontier_seen = set()
-    trap_logs = []
-
-    nodes_expanded = 0
-    final_frontier = []
-    frontier_history = []
-    selected_nodes = []
-    memory_usage = 0
-
-    while open_list:
-
-        h, _, current = heapq.heappop(
-            open_list
-        )
-        selected_nodes.append(current)
-
-        if current in visited:
-            continue
-
-        visited.add(current)
-
-        explored.append(current)
-
-        heuristic_values[current] = h
-
-        nodes_expanded += 1
-        memory_usage = max(memory_usage, len(open_list) + len(visited))
-
-        if current == goal:
-
-            runtime = (
-                time.perf_counter()
-                - start_time
-            ) * 1000
-
-            path = reconstruct_path(
-                parent,
-                goal
-            )
-            
-            path_cost = calculate_path_cost(path, grid)
-            weather_count = count_weather_hazards(path, grid)
-            penalty = calculate_penalty(path, grid)
-            no_fly_zones_crossed = count_no_fly_zones(path, grid)
-            final_frontier = [node for _, _, node in open_list]
-
-            return {
-                "path": path,
-                "nodes_expanded": nodes_expanded,
-                "runtime_ms": runtime,
-                "path_length": len(path) - 1,
-                "path_cost": path_cost,
-                "explored": explored,
-                "heuristic_values": heuristic_values,
-                "penalty": penalty,
-                "weather_count": weather_count,
-                "no_fly_zones_crossed": no_fly_zones_crossed,
-                "memory_usage": memory_usage,
-                "frontier": final_frontier,
-                "frontier_history": frontier_history,
-                "selected_nodes": selected_nodes,
-                "trap_logs": trap_logs
-            }
-
-        for neighbor in get_neighbors(
-            current,
-            grid
-        ):
-
-            if neighbor not in visited:
-                # Only set parent if not already set (avoid overwrite)
-                if neighbor not in parent:
-                    parent[neighbor] = current
-
-                    heapq.heappush(
-                        open_list,
-                        (
-                            heuristic_h2(
-                                neighbor,
-                                goal,
-                                grid
-                            ),
-                            tie_break,
-                            neighbor
-                        )
-                    )
-                    tie_break += 1
-                    frontier_history.append(
-                        [node for _, _, node in open_list]
-                    )
-                    memory_usage = max(memory_usage, len(open_list) + len(visited))
-
-        current_frontier = [node for _, _, node in open_list]
-        display_iteration_grid(grid, current, current_frontier, explored)
-        frontier_set = frozenset(current_frontier)
-        if frontier_set in frontier_seen:
-            trap_logs.append(
-                f"Iteration {nodes_expanded}: repeated frontier set after selecting {current}"
-            )
-        else:
-            frontier_seen.add(frontier_set)
-
-    return None
 
 # ==================================================
 # MAIN DRIVER
@@ -1260,3 +1367,11 @@ if __name__ == "__main__":
         print(
             "\nResults written to outputPS4.txt"
         )
+
+    # Run comparison
+    comparison_results = compare_algorithms(grid, start, goal)
+
+    # Write output to file
+    write_output(comparison_results)
+   
+

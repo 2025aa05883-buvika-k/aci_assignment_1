@@ -1,7 +1,7 @@
 ===== GBFS RESULTS =====
 
 Nodes Expanded: 14
-Runtime (ms): 12.607
+Runtime (ms): 0.5979
 Path Length: 13
 Path Cost: 19
 Memory Usage: 23
@@ -16,3 +16,20 @@ Path: [(0, 0), (0, 1), (0, 2), (1, 2), (1, 3), (2, 3), (3, 3), (3, 4), (3, 5), (
 Explored Nodes: [(0, 0), (0, 1), (0, 2), (1, 2), (1, 3), (2, 3), (3, 3), (3, 4), (3, 5), (4, 5), (4, 6), (4, 7), (5, 7), (6, 7)]
 Time Complexity: O(V log V)
 Space Complexity: O(V)
+
+=== Algorithm Comparison Results ===
+
+Algorithm      Complete                                Nodes Expanded    Time (ms)   
+-------------------------------------------------------------------------------------
+GBFS (h1)      No (Heuristic-based, Not Guaranteed)    14                0.9985      
+GBFS (h2)      No (Heuristic-based, Not Guaranteed)    14                1.0427      
+A* (h1)        Yes (Optimal & Complete)                32                1.8777      
+
+
+======== ANALYSIS ========
+
+(a) Complete Algorithm:
+    A* (h1) is complete as it guarantees reaching the goal using cost + heuristic.
+
+(b) Least Nodes Expanded: GBFS (h1)
+(c) Fastest Algorithm: GBFS (h1)
