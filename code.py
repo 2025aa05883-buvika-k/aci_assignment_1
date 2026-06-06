@@ -374,7 +374,151 @@ def write_output(result, filename="outputPS4.txt"):
             f"{result['explored']}\n"
         )
 
+# ==================================================
+# HEURISTIC FUNCTION (h2)
+# ==================================================
 
+def heuristic_h2(node, goal, grid):
+    """
+    Bounding Box Risk Weighted Heuristic
+
+    h2 = Manhattan Distance × Average Window Cost
+    """
+
+    cost_map = {
+        '.': 1,
+        'W': 4,
+        'N': 8,
+        'S': 2,
+        'E': 2
+    }
+
+    row, col = node
+    goal_row, goal_col = goal
+
+    manhattan_distance = (
+        abs(row - goal_row)
+        + abs(col - goal_col)
+    )
+
+    row_start = min(row, goal_row)
+    row_end = max(row, goal_row)
+
+    col_start = min(col, goal_col)
+    col_end = max(col, goal_col)
+
+    total_cost = 0
+    total_cells = 0
+
+    for r in range(row_start, row_end + 1):
+        for c in range(col_start, col_end + 1):
+
+            total_cost += cost_map[
+                grid[r][c]
+            ]
+
+            total_cells += 1
+
+    average_cost = total_cost / total_cells
+
+    return round(
+        manhattan_distance * average_cost,
+        2
+    )
+
+
+# ==================================================
+# GBFS-H2
+# ==================================================
+
+def gbfs_h2(grid, start, goal):
+
+    start_time = time.perf_counter()
+
+    open_list = []
+
+    heapq.heappush(
+        open_list,
+        (
+            heuristic_h2(
+                start,
+                goal,
+                grid
+            ),
+            start
+        )
+    )
+
+    parent = {start: None}
+
+    visited = set()
+
+    explored = []
+
+    heuristic_values = {}
+
+    nodes_expanded = 0
+
+    while open_list:
+
+        h, current = heapq.heappop(
+            open_list
+        )
+
+        if current in visited:
+            continue
+
+        visited.add(current)
+
+        explored.append(current)
+
+        heuristic_values[current] = h
+
+        nodes_expanded += 1
+
+        if current == goal:
+
+            runtime = (
+                time.perf_counter()
+                - start_time
+            ) * 1000
+
+            path = reconstruct_path(
+                parent,
+                goal
+            )
+
+            return {
+                "path": path,
+                "nodes_expanded": nodes_expanded,
+                "runtime_ms": runtime,
+                "path_length": len(path) - 1,
+                "explored": explored,
+                "heuristic_values": heuristic_values,
+            }
+
+        for neighbor in get_neighbors(
+            current,
+            grid
+        ):
+
+            if neighbor not in visited:
+
+                parent[neighbor] = current
+
+                heapq.heappush(
+                    open_list,
+                    (
+                        heuristic_h2(
+                            neighbor,
+                            goal,
+                            grid
+                        ),
+                        neighbor
+                    )
+                )
+
+    return None
 
 # ==================================================
 # MAIN DRIVER
@@ -525,6 +669,48 @@ if __name__ == "__main__":
             print(
                 "Path Cost:",
                 result["path_cost"]
+            )
+
+            print(
+                "Path:",
+                result["path"]
+            )
+
+        else:
+
+            print(
+                "Goal not reachable."
+            )
+    # Run GBFS-H2
+
+    elif algorithm == "GBFS" and heuristic == "h2":
+
+        result = gbfs_h2(
+            grid,
+            start,
+            goal
+        )
+
+        if result:
+
+            print("\n===== GBFS-H2 RESULTS =====")
+
+            print(
+                "Nodes Expanded:",
+                result["nodes_expanded"]
+            )
+
+            print(
+                "Runtime (ms):",
+                round(
+                    result["runtime_ms"],
+                    4
+                )
+            )
+
+            print(
+                "Path Length:",
+                result["path_length"]
             )
 
             print(
