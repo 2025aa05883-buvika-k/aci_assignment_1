@@ -18,14 +18,14 @@ N N . . . . N .
 
 ===== METRICS =====
 Nodes Expanded: 14
-Runtime (ms): 0.0682
+Runtime (ms): 0.0722
 Path Length: 13
 Path Cost: 19
 Memory Usage (OPEN + CLOSED): 23
 Weather Hazard Zones Crossed: 1
 Penalty Incurred: 4
 No-Fly Zones Crossed: 0
-Time Complexity: O(E log V)
+Time Complexity: O((V+E)log V)
 Space Complexity: O(V)
 
 Complexity Note: GBFS orders frontier nodes by h(n) using a heap.
@@ -49,26 +49,3 @@ N N . * * * N .
 
 ===== TRAP / INEFFICIENT REGION LOG =====
 No dead-end or repeated-frontier trap instances recorded.
-
-
-===== ALGORITHM COMPARISON RESULTS =====
-
-Algorithm      Complete    Runtime(ms)   Expanded    Cost      Length    Memory    
------------------------------------------------------------------------------------
-GBFS (h1)      Yes         0.0852        14          19        13        23        
-GBFS (h2)      Yes         0.3536        14          19        13        28        
-A* (h1)        Yes         0.1397        32          16        13        43        
-
-======== ANALYSIS ========
-
-(a) Completeness:
-    A* is complete for this finite grid when all step costs are positive.
-    GBFS can find a path in this run, but it is not guaranteed complete or optimal in general.
-    Complete algorithm listed: A* (h1)
-
-(b) Least Nodes Expanded: GBFS (h1)
-(c) Fastest Algorithm: GBFS (h1)
-(d) Lowest Path Cost: A* (h1)
-
-(e) Heuristic Comparison:
-    h1 and h2 expanded the same number of nodes in this run. Runtime, memory, and path cost should be used to decide the better heuristic.
