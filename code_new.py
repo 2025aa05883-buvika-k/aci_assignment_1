@@ -368,7 +368,6 @@ def get_complexity_analysis(algorithm):
         }
 
 
-    return complexities[algorithm]
 
  
 def display_path_grid(grid, path):
@@ -1048,6 +1047,34 @@ def plot_algorithm_comparison(results):
     plt.tight_layout()
     plt.show()
 
+def plot_comparative_runtime(results):
+
+    labels = [r["Algorithm"] for r in results]
+    runtimes = [r["runtime_ms"] for r in results]
+
+    plt.figure(figsize=(8,5))
+    plt.bar(labels, runtimes)
+
+    plt.title("Runtime Comparison")
+    plt.ylabel("Runtime (ms)")
+    plt.xlabel("Algorithm")
+    plt.tight_layout()
+    plt.show()
+
+def plot_comparative_nodes(results):
+
+    labels = [r["Algorithm"] for r in results]
+    nodes = [r["nodes_expanded"] for r in results]
+
+    plt.figure(figsize=(8,5))
+    plt.bar(labels, nodes)
+
+    plt.title("Nodes Expanded Comparison")
+    plt.ylabel("Nodes Expanded")
+    plt.xlabel("Algorithm")
+    plt.tight_layout()
+    plt.show()
+
 
 # ==================================================
 # MAIN DRIVER
@@ -1081,7 +1108,6 @@ def main():
             print(" ".join(row))
 
         if "--compare" in sys.argv:
-            comparison_results = compare_algorithms(grid, start, goal, testcase_id)
             algorithm_results = compare_algorithms(
                     grid,
                     start,
@@ -1089,16 +1115,11 @@ def main():
                     testcase_id,
                 )
 
-            heuristic_results = compare_heuristics(
-                    grid,
-                    start,
-                    goal,
-                    testcase_id,
-                )
-
-            plot_algorithm_comparison(algorithm_results)
+            plot_comparative_runtime(algorithm_results)
+            plot_comparative_nodes(algorithm_results)
             plot_heuristic_comparison(heuristic_results)
             write_comparison_output(comparison_results, "outputPS4.txt")
+
             print("\nComparison written to outputPS4.txt")
             return
 
