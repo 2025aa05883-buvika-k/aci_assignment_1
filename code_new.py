@@ -341,20 +341,35 @@ def get_complexity_analysis(algorithm):
 
     complexities = {
         "GBFS": {
-            "time": "O(E log V)",
-            "space": "O(V)",
-            "reason": "GBFS orders frontier nodes by h(n) using a heap.",
+            "time_complexity": "O(E log V)",
+            "space_complexity": "O(V)",
+            "complexity_reason": "GBFS orders frontier nodes by h(n) using a heap.",
         },
         "A*": {
-            "time": "O(E log V)",
-            "space": "O(V)",
-            "reason": "A* orders frontier nodes by f(n) = g(n) + h(n) using a heap.",
+            "time_complexity": "O(E log V)",
+            "space_complexity": "O(V)",
+            "complexity_reason": "A* orders frontier nodes by f(n) = g(n) + h(n) using a heap.",
         },
     }
+    algorithm = algorithm.strip().upper()
+
+    if algorithm in complexities:
+        return {
+            "time_complexity": complexities[algorithm]["time_complexity"],
+            "space_complexity": complexities[algorithm]["space_complexity"],
+            "complexity_reason": complexities[algorithm]["complexity_reason"],
+        }
+
+    return {
+        "time_complexity": "Unknown",
+        "space_complexity": "Unknown",
+        "complexity_reason": "Algorithm not recognized.",
+        }
+
 
     return complexities[algorithm]
 
-
+ 
 def display_path_grid(grid, path):
     print("\n===== PATH GRID =====")
     print(render_path_grid(grid, path))
@@ -450,9 +465,9 @@ def make_result(
         "trap_logs": trap_logs,
         "found": found,
         "message": message,
-        "time_complexity": complexity["time"],
-        "space_complexity": complexity["space"],
-        "complexity_reason": complexity["reason"],
+        "time_complexity": complexity["time_complexity"],
+        "space_complexity": complexity["space_complexity"],
+        "complexity_reason": complexity["complexity_reason"],
     }
 
 
@@ -891,10 +906,7 @@ def write_comparison_output(results, filename="outputPS4.txt"):
     output_text += format_results_table(results)
     output_text += generate_analysis(results)
 
-    with open(filename, "w", encoding="utf-8") as file:
-        file.write(output_text)
-
-    print(output_text)
+    return(output_text)
 
 
 def print_result_summary(result, grid):
@@ -998,8 +1010,21 @@ def main():
 
         write_output(result, grid, "outputPS4.txt")
         print_result_summary(result, grid)
-        print("\nResults written to outputPS4.txt")
+        
+# Generate comparison
+        comparison_results = compare_algorithms(grid, start, goal, testcase_id)
+        
+# Get formatted comparison text
+        comparison_text = write_comparison_output(comparison_results)
 
+# Append to already existing output_PS4 file
+        with open("outputPS4.txt", "a", encoding="utf-8") as file:
+            file.write("\n\n")
+            file.write(comparison_text)
+
+        print_result_summary(result, grid)
+        print("\nResults written to outputPS4.txt")
+       
         if not result["found"]:
             sys.exit(1)
 
