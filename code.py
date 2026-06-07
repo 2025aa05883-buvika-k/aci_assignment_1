@@ -1117,10 +1117,11 @@ def main():
 
             plot_comparative_runtime(algorithm_results)
             plot_comparative_nodes(algorithm_results)
+            heuristic_results = compare_heuristics(grid, start, goal, testcase_id)
             plot_heuristic_comparison(heuristic_results)
-            write_comparison_output(comparison_results, "outputPS4.txt")
+            write_comparison_output(algorithm_results, "outputPS4.txt")
 
-            print("\nComparison written to outputPS4.txt")
+            print("\nComparison Complete")
             return
 
         if "--compare-heuristics" in sys.argv:
@@ -1129,7 +1130,7 @@ def main():
                 comparison_results,
                 "outputPS4.txt",
             )
-            print("\nHeuristic comparison written to outputPS4.txt")
+            print("\nHeuristic comparison complete")
             return       
 
         if algorithm == "GBFS" and heuristic == "h1":
