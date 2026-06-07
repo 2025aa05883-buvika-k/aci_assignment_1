@@ -3,6 +3,7 @@ import math
 import os
 import sys
 import time
+import matplotlib.pyplot as plt
 
 
 # ==================================================
@@ -34,8 +35,6 @@ DEFAULTS = {
     "HEURISTIC": "h1",
     "ALGORITHM": "GBFS",
     "TESTCASE_ID": "TC01",
-    "DEBUG": "false",
-    "SAVE_FRONTIER_HISTORY": "false",
 }
 
 
@@ -50,8 +49,7 @@ def read_input_file(filename="inputPS4.txt"):
     Expected keys:
     START_NODE, GOAL_NODE, HEURISTIC, ALGORITHM, TESTCASE_ID
 
-    Optional keys:
-    DEBUG, SAVE_FRONTIER_HISTORY
+    Professor clarification confirms these five input keys are expected.
     """
 
     params = {}
@@ -110,9 +108,6 @@ def normalize_algorithm(value):
         "ASTAR": "A*",
         "A STAR": "A*",
         "A-STAR": "A*",
-        "COMPARE": "COMPARE",
-        "COMPARISON": "COMPARE",
-        "ALL": "COMPARE",
     }
 
     if normalized not in aliases:
@@ -156,10 +151,6 @@ def build_config():
         "algorithm": algorithm,
         "heuristic": heuristic,
         "testcase_id": config["TESTCASE_ID"],
-        "debug": parse_bool(config.get("DEBUG", "false")),
-        "save_frontier_history": parse_bool(
-            config.get("SAVE_FRONTIER_HISTORY", "false")
-        ),
     }
 
 
@@ -341,6 +332,44 @@ def count_no_fly_zones(path, grid):
     return sum(1 for row, col in path if grid[row][col] == "N")
 
 
+def get_complexity_analysis(algorithm):
+    """
+    Returns algorithm-specific complexity for the priority-queue implementation.
+
+    V = number of grid cells, E = number of valid movement edges.
+    On the fixed 8x8 grid, V <= 64 and E is bounded by the four-way movement model.
+    """
+
+    complexities = {
+        "GBFS": {
+            "time_complexity": "O((V+E)log V)",
+            "space_complexity": "O(V)",
+            "complexity_reason": "GBFS orders frontier nodes by h(n) using a heap.",
+        },
+        "A*": {
+            "time_complexity": "O((V+E)log V)",
+            "space_complexity": "O(V)",
+            "complexity_reason": "A* orders frontier nodes by f(n) = g(n) + h(n) using a heap.",
+        },
+    }
+    algorithm = algorithm.strip().upper()
+
+    if algorithm in complexities:
+        return {
+            "time_complexity": complexities[algorithm]["time_complexity"],
+            "space_complexity": complexities[algorithm]["space_complexity"],
+            "complexity_reason": complexities[algorithm]["complexity_reason"],
+        }
+
+    return {
+        "time_complexity": "Unknown",
+        "space_complexity": "Unknown",
+        "complexity_reason": "Algorithm not recognized.",
+        }
+
+
+
+ 
 def display_path_grid(grid, path):
     print("\n===== PATH GRID =====")
     print(render_path_grid(grid, path))
@@ -411,6 +440,8 @@ def make_result(
         penalty = 0
         no_fly_zones_crossed = 0
 
+    complexity = get_complexity_analysis(algorithm)
+
     return {
         "algorithm": algorithm,
         "heuristic": heuristic,
@@ -434,8 +465,9 @@ def make_result(
         "trap_logs": trap_logs,
         "found": found,
         "message": message,
-        "time_complexity": "O(E log V)",
-        "space_complexity": "O(V)",
+        "time_complexity": complexity["time_complexity"],
+        "space_complexity": complexity["space_complexity"],
+        "complexity_reason": complexity["complexity_reason"],
     }
 
 
@@ -842,6 +874,7 @@ def write_output(result, grid, filename="outputPS4.txt"):
         file.write(f"No-Fly Zones Crossed: {result['no_fly_zones_crossed']}\n")
         file.write(f"Time Complexity: {result['time_complexity']}\n")
         file.write(f"Space Complexity: {result['space_complexity']}\n\n")
+        file.write(f"Complexity Note: {result['complexity_reason']}\n\n")
 
         file.write("===== SEARCH DETAILS =====\n")
         file.write(f"Selected Nodes: {result['selected_nodes']}\n")
@@ -863,19 +896,17 @@ def write_output(result, grid, filename="outputPS4.txt"):
             file.write("\n")
 
 
-def write_comparison_output(results, filename="comparisonPS4.txt"):
+def write_comparison_output(results, filename="outputPS4.txt"):
     """
-    Writes comparison results to a separate file to avoid overwriting outputPS4.txt.
+    Writes comparison results to the standard assignment output file.
+    Comparison is only generated when explicitly requested with a command-line flag.
     """
 
     output_text = "===== ALGORITHM COMPARISON RESULTS =====\n\n"
     output_text += format_results_table(results)
     output_text += generate_analysis(results)
 
-    with open(filename, "w", encoding="utf-8") as file:
-        file.write(output_text)
-
-    print(output_text)
+    return(output_text)
 
 
 def print_result_summary(result, grid):
@@ -897,6 +928,152 @@ def print_result_summary(result, grid):
 
     if result["path"]:
         display_path_grid(grid, result["path"])
+        
+# ==================================================
+# VISUALIZATIONS
+# ==================================================
+
+
+def plot_nodes_expanded(result):
+    plt.figure()
+    plt.bar([result["algorithm"] + "-" + result["heuristic"]],
+            [result["nodes_expanded"]])
+    plt.title("Nodes Expanded")
+    plt.ylabel("Count")
+    plt.xlabel("Algorithm")
+    plt.show()
+
+
+def plot_runtime(result):
+    plt.figure()
+    plt.bar([result["algorithm"] + "-" + result["heuristic"]],
+            [result["runtime_ms"]])
+    plt.title("Runtime (ms)")
+    plt.ylabel("Milliseconds")
+    plt.xlabel("Algorithm")
+    plt.show()
+
+
+def visualize_path(grid, path):
+    rows = len(grid)
+    cols = len(grid[0])
+
+    grid_visual = [[0 for _ in range(cols)] for _ in range(rows)]
+
+    for r in range(rows):
+        for c in range(cols):
+            if grid[r][c] == "W":
+                grid_visual[r][c] = 2
+            elif grid[r][c] == "N":
+                grid_visual[r][c] = -1
+
+    for (r, c) in path:
+        grid_visual[r][c] = 5
+
+    plt.figure()
+    plt.imshow(grid_visual)
+    plt.title("Final Path Visualization")
+    plt.colorbar()
+    plt.show()
+    
+def plot_heuristic_comparison(results):
+    import matplotlib.pyplot as plt
+
+    labels = [r["Algorithm"] for r in results]
+    nodes = [r["nodes_expanded"] for r in results]
+    runtime = [r["runtime_ms"] for r in results]
+    cost = [r["path_cost"] for r in results]
+    memory = [r["memory_usage"] for r in results]
+
+    x = range(len(labels))
+
+    plt.figure(figsize=(10, 6))
+
+    plt.bar(x, nodes, width=0.2, label="Nodes Expanded")
+    plt.bar([i + 0.2 for i in x], runtime, width=0.2, label="Runtime (ms)")
+    plt.bar([i + 0.4 for i in x], cost, width=0.2, label="Path Cost")
+    plt.bar([i + 0.6 for i in x], memory, width=0.2, label="Memory")
+
+    plt.xticks([i + 0.3 for i in x], labels)
+    plt.xlabel("Heuristics (GBFS)")
+    plt.ylabel("Values")
+    plt.title("Heuristic Comparison: h1 vs h2")
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+def plot_heuristic_values(result):
+    values = []
+
+    for node in result["selected_nodes"]:
+        if node in result["heuristic_values"]:
+            values.append(result["heuristic_values"][node])
+
+    plt.figure()
+    plt.plot(range(len(values)), values, marker="o")
+    plt.title("Heuristic Value Across Search")
+    plt.xlabel("Iteration")
+    plt.ylabel("Heuristic Value")
+    plt.grid(True)
+    plt.show()
+
+
+def plot_algorithm_comparison(results):
+    labels = [r["Algorithm"] for r in results]
+
+    nodes = [r["nodes_expanded"] for r in results]
+    runtimes = [r["runtime_ms"] for r in results]
+
+    x = range(len(labels))
+
+    plt.figure(figsize=(10, 6))
+
+    plt.bar(x, nodes, width=0.4, label="Nodes Expanded")
+    plt.bar(
+        [i + 0.4 for i in x],
+        runtimes,
+        width=0.4,
+        label="Runtime (ms)"
+    )
+
+    plt.xticks([i + 0.2 for i in x], labels)
+
+    plt.xlabel("Algorithms")
+    plt.ylabel("Value")
+    plt.title("Algorithm Comparison")
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+def plot_comparative_runtime(results):
+
+    labels = [r["Algorithm"] for r in results]
+    runtimes = [r["runtime_ms"] for r in results]
+
+    plt.figure(figsize=(8,5))
+    plt.bar(labels, runtimes)
+
+    plt.title("Runtime Comparison")
+    plt.ylabel("Runtime (ms)")
+    plt.xlabel("Algorithm")
+    plt.tight_layout()
+    plt.show()
+
+def plot_comparative_nodes(results):
+
+    labels = [r["Algorithm"] for r in results]
+    nodes = [r["nodes_expanded"] for r in results]
+
+    plt.figure(figsize=(8,5))
+    plt.bar(labels, nodes)
+
+    plt.title("Nodes Expanded Comparison")
+    plt.ylabel("Nodes Expanded")
+    plt.xlabel("Algorithm")
+    plt.tight_layout()
+    plt.show()
 
 
 # ==================================================
@@ -912,11 +1089,8 @@ def main():
         heuristic = config["heuristic"]
         algorithm = config["algorithm"]
         testcase_id = config["testcase_id"]
-        debug = config["debug"] or "--debug" in sys.argv
-        save_frontier_history = (
-            config["save_frontier_history"]
-            or "--save-frontier-history" in sys.argv
-        )
+        debug = "--debug" in sys.argv
+        save_frontier_history = "--save-frontier-history" in sys.argv
 
         grid = [row[:] for row in GRID]
         validate_inputs(grid, start, goal)
@@ -933,20 +1107,30 @@ def main():
         for row in grid:
             print(" ".join(row))
 
-        if "--compare" in sys.argv or algorithm == "COMPARE":
-            comparison_results = compare_algorithms(grid, start, goal, testcase_id)
-            write_comparison_output(comparison_results, "comparisonPS4.txt")
-            print("\nComparison written to comparisonPS4.txt")
+        if "--compare" in sys.argv:
+            algorithm_results = compare_algorithms(
+                    grid,
+                    start,
+                    goal,
+                    testcase_id,
+                )
+
+            plot_comparative_runtime(algorithm_results)
+            plot_comparative_nodes(algorithm_results)
+            plot_heuristic_comparison(heuristic_results)
+            write_comparison_output(comparison_results, "outputPS4.txt")
+
+            print("\nComparison written to outputPS4.txt")
             return
 
         if "--compare-heuristics" in sys.argv:
             comparison_results = compare_heuristics(grid, start, goal, testcase_id)
             write_comparison_output(
                 comparison_results,
-                "heuristicComparisonPS4.txt",
+                "outputPS4.txt",
             )
-            print("\nHeuristic comparison written to heuristicComparisonPS4.txt")
-            return
+            print("\nHeuristic comparison written to outputPS4.txt")
+            return       
 
         if algorithm == "GBFS" and heuristic == "h1":
             result = gbfs_h1(
@@ -982,8 +1166,23 @@ def main():
 
         write_output(result, grid, "outputPS4.txt")
         print_result_summary(result, grid)
-        print("\nResults written to outputPS4.txt")
+        
+        # --------------------------------------------------
+        # Visualizations
+        # --------------------------------------------------
 
+
+        plot_heuristic_values(result)
+
+        if result["path"]:
+            visualize_path(grid, result["path"])
+            
+        
+        heuristic_results = compare_heuristics(grid, start, goal, testcase_id)
+
+        print("\nResults written to outputPS4.txt")
+        
+      
         if not result["found"]:
             sys.exit(1)
 
