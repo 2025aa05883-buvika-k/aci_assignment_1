@@ -1060,6 +1060,78 @@ def plot_comparative_nodes(results):
     plt.xlabel("Algorithm")
     plt.tight_layout()
     plt.show()
+def visualize_environment(grid, path=None):
+
+    rows = len(grid)
+    cols = len(grid[0])
+
+    visual = [[0 for _ in range(cols)] for _ in range(rows)]
+
+    path_set = set(path) if path else set()
+
+    for r in range(rows):
+        for c in range(cols):
+
+            cell = grid[r][c]
+
+            if cell == ".":
+                visual[r][c] = 1
+
+            elif cell == "W":
+                visual[r][c] = 2
+
+            elif cell == "N":
+                visual[r][c] = 3
+
+            elif cell == "S":
+                visual[r][c] = 4
+
+            elif cell == "E":
+                visual[r][c] = 5
+
+    for r, c in path_set:
+        if grid[r][c] not in ("S", "E"):
+            visual[r][c] = 6
+
+    plt.figure(figsize=(8, 8))
+
+    plt.imshow(visual)
+
+    labels = {
+        ".": "Free",
+        "W": "Weather",
+        "N": "No-Fly",
+        "S": "Start",
+        "E": "Goal"
+    }
+
+    for r in range(rows):
+        for c in range(cols):
+
+            text = grid[r][c]
+
+            if (r, c) in path_set and grid[r][c] not in ("S", "E"):
+                text = "P"
+
+            plt.text(
+                c,
+                r,
+                text,
+                ha="center",
+                va="center",
+                fontsize=11,
+                fontweight="bold"
+            )
+
+    plt.title("Drone Environment and Planned Route")
+
+    plt.xticks(range(cols))
+    plt.yticks(range(rows))
+
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.show()
 
 
 # ==================================================
@@ -1089,7 +1161,9 @@ def main():
         print("Algorithm  :", algorithm)
         print("Test Case  :", testcase_id)
 
-        print("\n===== UPDATED GRID =====")
+        print("\nINITIAL ENVIRONMENT")
+        visualize_environment(grid)
+
         for row in grid:
             print(" ".join(row))
 
@@ -1158,6 +1232,8 @@ def main():
 
         if result["path"]:
             visualize_path(grid, result["path"])
+            print("\nFINAL ENVIRONMENT WITH PATH")
+            visualize_environment(grid, result["path"])
             
         
         heuristic_results = compare_heuristics(grid, start, goal, testcase_id)
