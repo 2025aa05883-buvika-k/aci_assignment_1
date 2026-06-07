@@ -3,6 +3,7 @@ import math
 import os
 import sys
 import time
+import matplotlib.pyplot as plt
 
 
 # ==================================================
@@ -341,12 +342,12 @@ def get_complexity_analysis(algorithm):
 
     complexities = {
         "GBFS": {
-            "time_complexity": "O(E log V)",
+            "time_complexity": "O((V+E)log V)",
             "space_complexity": "O(V)",
             "complexity_reason": "GBFS orders frontier nodes by h(n) using a heap.",
         },
         "A*": {
-            "time_complexity": "O(E log V)",
+            "time_complexity": "O((V+E)log V)",
             "space_complexity": "O(V)",
             "complexity_reason": "A* orders frontier nodes by f(n) = g(n) + h(n) using a heap.",
         },
@@ -928,7 +929,80 @@ def print_result_summary(result, grid):
 
     if result["path"]:
         display_path_grid(grid, result["path"])
+        
+# ==================================================
+# VISUALIZATIONS
+# ==================================================
 
+
+def plot_nodes_expanded(result):
+    plt.figure()
+    plt.bar([result["algorithm"] + "-" + result["heuristic"]],
+            [result["nodes_expanded"]])
+    plt.title("Nodes Expanded")
+    plt.ylabel("Count")
+    plt.xlabel("Algorithm")
+    plt.show()
+
+
+def plot_runtime(result):
+    plt.figure()
+    plt.bar([result["algorithm"] + "-" + result["heuristic"]],
+            [result["runtime_ms"]])
+    plt.title("Runtime (ms)")
+    plt.ylabel("Milliseconds")
+    plt.xlabel("Algorithm")
+    plt.show()
+
+
+def visualize_path(grid, path):
+    rows = len(grid)
+    cols = len(grid[0])
+
+    grid_visual = [[0 for _ in range(cols)] for _ in range(rows)]
+
+    for r in range(rows):
+        for c in range(cols):
+            if grid[r][c] == "W":
+                grid_visual[r][c] = 2
+            elif grid[r][c] == "N":
+                grid_visual[r][c] = -1
+
+    for (r, c) in path:
+        grid_visual[r][c] = 5
+
+    plt.figure()
+    plt.imshow(grid_visual)
+    plt.title("Final Path Visualization")
+    plt.colorbar()
+    plt.show()
+    
+def plot_heuristic_comparison(results):
+    import matplotlib.pyplot as plt
+
+    labels = [r["Algorithm"] for r in results]
+    nodes = [r["nodes_expanded"] for r in results]
+    runtime = [r["runtime_ms"] for r in results]
+    cost = [r["path_cost"] for r in results]
+    memory = [r["memory_usage"] for r in results]
+
+    x = range(len(labels))
+
+    plt.figure(figsize=(10, 6))
+
+    plt.bar(x, nodes, width=0.2, label="Nodes Expanded")
+    plt.bar([i + 0.2 for i in x], runtime, width=0.2, label="Runtime (ms)")
+    plt.bar([i + 0.4 for i in x], cost, width=0.2, label="Path Cost")
+    plt.bar([i + 0.6 for i in x], memory, width=0.2, label="Memory")
+
+    plt.xticks([i + 0.3 for i in x], labels)
+    plt.xlabel("Heuristics (GBFS)")
+    plt.ylabel("Values")
+    plt.title("Heuristic Comparison: h1 vs h2")
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
 
 # ==================================================
 # MAIN DRIVER
@@ -1011,20 +1085,24 @@ def main():
         write_output(result, grid, "outputPS4.txt")
         print_result_summary(result, grid)
         
-# Generate comparison
-        comparison_results = compare_algorithms(grid, start, goal, testcase_id)
+# --------------------------------------------------
+# Visualizations
+# --------------------------------------------------
+
+        plot_nodes_expanded(result)
+        plot_runtime(result)
+
+        if result["path"]:
+            visualize_path(grid, result["path"])
+            
         
-# Get formatted comparison text
-        comparison_text = write_comparison_output(comparison_results)
+        heuristic_results = compare_heuristics(grid, start, goal, testcase_id)
+        plot_heuristic_comparison(heuristic_results)
 
-# Append to already existing output_PS4 file
-        with open("outputPS4.txt", "a", encoding="utf-8") as file:
-            file.write("\n\n")
-            file.write(comparison_text)
 
-        print_result_summary(result, grid)
         print("\nResults written to outputPS4.txt")
-       
+        
+      
         if not result["found"]:
             sys.exit(1)
 
