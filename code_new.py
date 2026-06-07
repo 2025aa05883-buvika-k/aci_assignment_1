@@ -1004,6 +1004,51 @@ def plot_heuristic_comparison(results):
     plt.tight_layout()
     plt.show()
 
+def plot_heuristic_values(result):
+    values = []
+
+    for node in result["selected_nodes"]:
+        if node in result["heuristic_values"]:
+            values.append(result["heuristic_values"][node])
+
+    plt.figure()
+    plt.plot(range(len(values)), values, marker="o")
+    plt.title("Heuristic Value Across Search")
+    plt.xlabel("Iteration")
+    plt.ylabel("Heuristic Value")
+    plt.grid(True)
+    plt.show()
+
+
+def plot_algorithm_comparison(results):
+    labels = [r["Algorithm"] for r in results]
+
+    nodes = [r["nodes_expanded"] for r in results]
+    runtimes = [r["runtime_ms"] for r in results]
+
+    x = range(len(labels))
+
+    plt.figure(figsize=(10, 6))
+
+    plt.bar(x, nodes, width=0.4, label="Nodes Expanded")
+    plt.bar(
+        [i + 0.4 for i in x],
+        runtimes,
+        width=0.4,
+        label="Runtime (ms)"
+    )
+
+    plt.xticks([i + 0.2 for i in x], labels)
+
+    plt.xlabel("Algorithms")
+    plt.ylabel("Value")
+    plt.title("Algorithm Comparison")
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+
 # ==================================================
 # MAIN DRIVER
 # ==================================================
@@ -1037,6 +1082,22 @@ def main():
 
         if "--compare" in sys.argv:
             comparison_results = compare_algorithms(grid, start, goal, testcase_id)
+            algorithm_results = compare_algorithms(
+                    grid,
+                    start,
+                    goal,
+                    testcase_id,
+                )
+
+            heuristic_results = compare_heuristics(
+                    grid,
+                    start,
+                    goal,
+                    testcase_id,
+                )
+
+            plot_algorithm_comparison(algorithm_results)
+            plot_heuristic_comparison(heuristic_results)
             write_comparison_output(comparison_results, "outputPS4.txt")
             print("\nComparison written to outputPS4.txt")
             return
@@ -1048,7 +1109,7 @@ def main():
                 "outputPS4.txt",
             )
             print("\nHeuristic comparison written to outputPS4.txt")
-            return
+            return       
 
         if algorithm == "GBFS" and heuristic == "h1":
             result = gbfs_h1(
@@ -1085,20 +1146,18 @@ def main():
         write_output(result, grid, "outputPS4.txt")
         print_result_summary(result, grid)
         
-# --------------------------------------------------
-# Visualizations
-# --------------------------------------------------
+        # --------------------------------------------------
+        # Visualizations
+        # --------------------------------------------------
 
-        plot_nodes_expanded(result)
-        plot_runtime(result)
+
+        plot_heuristic_values(result)
 
         if result["path"]:
             visualize_path(grid, result["path"])
             
         
         heuristic_results = compare_heuristics(grid, start, goal, testcase_id)
-        plot_heuristic_comparison(heuristic_results)
-
 
         print("\nResults written to outputPS4.txt")
         
