@@ -274,24 +274,24 @@ def get_neighbors(position, grid):
 
     row, col = position
     directions = [
-        (-1, 0),  # North
-        (0, 1),   # East
-        (1, 0),   # South
-        (0, -1),  # West
+        (-1, 0, 1),  # North
+        (0, 1, 1),   # East
+        (1, 0, 2),   # South
+        (0, -1, 3),  # West
     ]
 
     neighbors = []
 
-    for dr, dc in directions:
+    for dr, dc, priority in directions:
         nr = row + dr
         nc = col + dc
 
         if (
             0 <= nr < len(grid)
             and 0 <= nc < len(grid[0])
-            and grid[nr][nc] != "N"
+            #and grid[nr][nc] != "N"
         ):
-            neighbors.append((nr, nc))
+            neighbors.append(((nr, nc), priority))
 
     return neighbors
 
@@ -508,7 +508,7 @@ def search(grid, start, goal, algorithm, heuristic, testcase_id, debug=False,
     tie_break = 0
 
     start_h = get_heuristic_value(heuristic, start, goal, grid, start)
-    heapq.heappush(open_list, (start_h, tie_break, start))
+    heapq.heappush(open_list, (start_h, 0, tie_break, start))
     tie_break += 1
 
     parent = {start: None}
@@ -524,7 +524,7 @@ def search(grid, start, goal, algorithm, heuristic, testcase_id, debug=False,
     memory_usage = 0
 
     while open_list:
-        _, _, current = heapq.heappop(open_list)
+        _, _, _, current = heapq.heappop(open_list)
         selected_nodes.append(current)
 
         if current in closed_set:
@@ -538,7 +538,7 @@ def search(grid, start, goal, algorithm, heuristic, testcase_id, debug=False,
         if current == goal:
             runtime = (time.perf_counter() - start_time) * 1000
             path = reconstruct_path(parent, goal)
-            final_frontier = [node for _, _, node in open_list]
+            final_frontier = [node for _, _, _, node in open_list]
 
             return make_result(
                 algorithm,
@@ -561,7 +561,7 @@ def search(grid, start, goal, algorithm, heuristic, testcase_id, debug=False,
                 "Goal reached successfully.",
             )
 
-        for neighbor in get_neighbors(current, grid):
+        for (neighbor, direction_priority) in get_neighbors(current, grid):
             h_value = get_heuristic_value(heuristic, neighbor, goal, grid, start)
             heuristic_values[neighbor] = h_value
 
@@ -570,7 +570,7 @@ def search(grid, start, goal, algorithm, heuristic, testcase_id, debug=False,
                     continue
 
                 parent[neighbor] = current
-                heapq.heappush(open_list, (h_value, tie_break, neighbor))
+                heapq.heappush(open_list, (h_value, direction_priority, tie_break, neighbor))
                 tie_break += 1
 
             else:
@@ -584,11 +584,11 @@ def search(grid, start, goal, algorithm, heuristic, testcase_id, debug=False,
                     g_cost[neighbor] = tentative_g
                     heapq.heappush(
                         open_list,
-                        (tentative_g + h_value, tie_break, neighbor),
+                        (tentative_g + h_value, direction_priority, tie_break, neighbor),
                     )
                     tie_break += 1
 
-        current_frontier = [node for _, _, node in open_list]
+        current_frontier = [node for _, _, _, node in open_list]
 
         if save_frontier_history:
             frontier_history.append(current_frontier[:])
@@ -919,28 +919,11 @@ def print_result_summary(result, grid):
 # VISUALIZATIONS
 # ==================================================
 
-
-def plot_nodes_expanded(result):
-    plt.figure()
-    plt.bar([result["algorithm"] + "-" + result["heuristic"]],
-            [result["nodes_expanded"]])
-    plt.title("Nodes Expanded")
-    plt.ylabel("Count")
-    plt.xlabel("Algorithm")
-    plt.show()
-
-
-def plot_runtime(result):
-    plt.figure()
-    plt.bar([result["algorithm"] + "-" + result["heuristic"]],
-            [result["runtime_ms"]])
-    plt.title("Runtime (ms)")
-    plt.ylabel("Milliseconds")
-    plt.xlabel("Algorithm")
-    plt.show()
-
-
 def visualize_path(grid, path):
+    """
+    Visualizes the final path taken by the agent on the grid using a color-coded map.
+    """
+
     rows = len(grid)
     cols = len(grid[0])
 
@@ -963,6 +946,11 @@ def visualize_path(grid, path):
     plt.show()
     
 def plot_heuristic_comparison(results):
+    """
+    Compares h1 and h2 heuristics by plotting runtime, nodes expanded, and path cost.
+    
+    """
+
     import matplotlib.pyplot as plt
 
     labels = [r["Algorithm"] for r in results]
@@ -990,6 +978,11 @@ def plot_heuristic_comparison(results):
     plt.show()
 
 def plot_heuristic_values(result):
+    """
+    Plots heuristic values observed during search to analyze heuristic behavior.
+    
+    """
+
     values = []
 
     for node in result["selected_nodes"]:
@@ -1006,6 +999,10 @@ def plot_heuristic_values(result):
 
 
 def plot_algorithm_comparison(results):
+    """
+    Compares multiple algorithms based on performance metrics such as cost and efficiency.
+
+    """
     labels = [r["Algorithm"] for r in results]
 
     nodes = [r["nodes_expanded"] for r in results]
@@ -1034,6 +1031,9 @@ def plot_algorithm_comparison(results):
     plt.show()
 
 def plot_comparative_runtime(results):
+    """
+    Displays a bar chart comparing execution time across different algorithms.
+    """
 
     labels = [r["Algorithm"] for r in results]
     runtimes = [r["runtime_ms"] for r in results]
@@ -1048,6 +1048,10 @@ def plot_comparative_runtime(results):
     plt.show()
 
 def plot_comparative_nodes(results):
+    """
+    Displays a comparison of nodes expanded by each algorithm.
+
+    """
 
     labels = [r["Algorithm"] for r in results]
     nodes = [r["nodes_expanded"] for r in results]
@@ -1060,7 +1064,12 @@ def plot_comparative_nodes(results):
     plt.xlabel("Algorithm")
     plt.tight_layout()
     plt.show()
+    
 def visualize_environment(grid, path=None):
+    """
+    Shows the grid environment with terrain types and optionally overlays the solution path.
+    
+    """
 
     rows = len(grid)
     cols = len(grid[0])
@@ -1134,6 +1143,22 @@ def visualize_environment(grid, path=None):
     plt.show()
 
 
+def plot_comparative_memory(results):
+    """
+    Displays a comparison of memory usage across different algorithms.
+    """
+
+    labels = [r["algorithm"] + "-" + r["heuristic"] for r in results]
+    memory = [r["memory_usage"] for r in results]
+
+    plt.figure()
+    plt.bar(labels, memory)
+    plt.xlabel("Algorithm")
+    plt.ylabel("Memory Usage")
+    plt.title("Memory Usage Comparison")
+    plt.show()
+
+
 # ==================================================
 # MAIN DRIVER
 # ==================================================
@@ -1177,6 +1202,7 @@ def main():
 
             plot_comparative_runtime(algorithm_results)
             plot_comparative_nodes(algorithm_results)
+            plot_comparative_memory(algorithm_results)
             heuristic_results = compare_heuristics(grid, start, goal, testcase_id)
             plot_heuristic_comparison(heuristic_results)
             print("\nComparison Complete")
@@ -1237,6 +1263,7 @@ def main():
             
         
         heuristic_results = compare_heuristics(grid, start, goal, testcase_id)
+        
 
         print("\nResults written to outputPS4.txt")
         
