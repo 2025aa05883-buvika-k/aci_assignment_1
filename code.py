@@ -129,9 +129,6 @@ def normalize_heuristic(value):
     return normalized
 
 
-def parse_bool(value):
-    return str(value).strip().lower() in ("1", "true", "yes", "y", "on")
-
 
 def build_config():
     config = read_input_file()
