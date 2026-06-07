@@ -893,17 +893,6 @@ def write_output(result, grid, filename="outputPS4.txt"):
             file.write("\n")
 
 
-def write_comparison_output(results, filename="outputPS4.txt"):
-    """
-    Writes comparison results to the standard assignment output file.
-    Comparison is only generated when explicitly requested with a command-line flag.
-    """
-
-    output_text = "===== ALGORITHM COMPARISON RESULTS =====\n\n"
-    output_text += format_results_table(results)
-    output_text += generate_analysis(results)
-
-    return(output_text)
 
 
 def print_result_summary(result, grid):
@@ -1116,17 +1105,12 @@ def main():
             plot_comparative_nodes(algorithm_results)
             heuristic_results = compare_heuristics(grid, start, goal, testcase_id)
             plot_heuristic_comparison(heuristic_results)
-            write_comparison_output(algorithm_results, "outputPS4.txt")
-
             print("\nComparison Complete")
             return
 
         if "--compare-heuristics" in sys.argv:
             comparison_results = compare_heuristics(grid, start, goal, testcase_id)
-            write_comparison_output(
-                comparison_results,
-                "outputPS4.txt",
-            )
+            plot_heuristic_comparison(comparison_results)
             print("\nHeuristic comparison complete")
             return       
 
