@@ -1,35 +1,21 @@
-===== GBFS RESULTS =====
+===== ALGORITHM COMPARISON RESULTS =====
 
-Nodes Expanded: 14
-Runtime (ms): 0.5979
-Path Length: 13
-Path Cost: 19
-Memory Usage: 23
-Weather Hazard Zones Crossed: 1
-Penalty Incurred: 4
-No-Fly Zones Crossed: 0
-Heuristic Values: {(0, 0): 9.219544457292887, (0, 1): 8.48528137423857, (0, 2): 7.810249675906654, (1, 2): 7.0710678118654755, (1, 3): 6.4031242374328485, (2, 3): 5.656854249492381, (3, 3): 5.0, (3, 4): 4.242640687119285, (3, 5): 3.605551275463989, (4, 5): 2.8284271247461903, (4, 6): 2.23606797749979, (4, 7): 2.0, (5, 7): 1.0, (6, 7): 0.0}
-Frontier History: [[(0, 1)], [(0, 1), (1, 0)], [(0, 2), (1, 0)], [(0, 2), (1, 0), (1, 1)], [(0, 3), (1, 0), (1, 1)], [(1, 2), (0, 3), (1, 1), (1, 0)], [(1, 3), (0, 3), (1, 1), (1, 0)], [(1, 3), (2, 2), (1, 1), (1, 0), (0, 3)], [(2, 3), (2, 2), (1, 1), (1, 0), (0, 3)], [(3, 3), (2, 2), (1, 1), (1, 0), (0, 3)], [(3, 4), (2, 2), (1, 1), (1, 0), (0, 3)], [(3, 4), (2, 2), (4, 3), (1, 0), (0, 3), (1, 1)], [(3, 4), (2, 2), (4, 3), (1, 0), (0, 3), (1, 1), (3, 2)], [(3, 5), (2, 2), (4, 3), (1, 0), (0, 3), (1, 1), (3, 2)], [(3, 5), (4, 4), (4, 3), (2, 2), (0, 3), (1, 1), (3, 2), (1, 0)], [(4, 4), (2, 5), (4, 3), (2, 2), (0, 3), (1, 1), (3, 2), (1, 0)], [(4, 5), (4, 4), (4, 3), (2, 5), (0, 3), (1, 1), (3, 2), (1, 0), (2, 2)], [(4, 6), (4, 4), (4, 3), (2, 5), (0, 3), (1, 1), (3, 2), (1, 0), (2, 2)], [(4, 7), (4, 4), (4, 3), (2, 5), (0, 3), (1, 1), (3, 2), (1, 0), (2, 2)], [(3, 7), (4, 4), (4, 3), (2, 5), (0, 3), (1, 1), (3, 2), (1, 0), (2, 2)], [(5, 7), (3, 7), (4, 3), (2, 5), (4, 4), (1, 1), (3, 2), (1, 0), (2, 2), (0, 3)], [(6, 7), (3, 7), (4, 3), (2, 5), (4, 4), (1, 1), (3, 2), (1, 0), (2, 2), (0, 3)]]
-Selected Nodes: [(0, 0), (0, 1), (0, 2), (1, 2), (1, 3), (2, 3), (3, 3), (3, 4), (3, 5), (4, 5), (4, 6), (4, 7), (5, 7), (6, 7)]
-Frontier: [(3, 7), (4, 4), (4, 3), (2, 5), (0, 3), (1, 1), (3, 2), (1, 0), (2, 2)]
-Path: [(0, 0), (0, 1), (0, 2), (1, 2), (1, 3), (2, 3), (3, 3), (3, 4), (3, 5), (4, 5), (4, 6), (4, 7), (5, 7), (6, 7)]
-Explored Nodes: [(0, 0), (0, 1), (0, 2), (1, 2), (1, 3), (2, 3), (3, 3), (3, 4), (3, 5), (4, 5), (4, 6), (4, 7), (5, 7), (6, 7)]
-Time Complexity: O(V log V)
-Space Complexity: O(V)
-
-=== Algorithm Comparison Results ===
-
-Algorithm      Complete                                Nodes Expanded    Time (ms)   
--------------------------------------------------------------------------------------
-GBFS (h1)      No (Heuristic-based, Not Guaranteed)    14                0.9985      
-GBFS (h2)      No (Heuristic-based, Not Guaranteed)    14                1.0427      
-A* (h1)        Yes (Optimal & Complete)                32                1.8777      
-
+Algorithm      Complete    Runtime(ms)   Expanded    Cost      Length    Memory    
+-----------------------------------------------------------------------------------
+GBFS (h1)      Yes         0.155         14          19        13        23        
+GBFS (h2)      Yes         0.5073        14          19        13        28        
+A* (h1)        Yes         0.2439        32          16        13        43        
 
 ======== ANALYSIS ========
 
-(a) Complete Algorithm:
-    A* (h1) is complete as it guarantees reaching the goal using cost + heuristic.
+(a) Completeness:
+    A* is complete for this finite grid when all step costs are positive.
+    GBFS can find a path in this run, but it is not guaranteed complete or optimal in general.
+    Complete algorithm listed: A* (h1)
 
 (b) Least Nodes Expanded: GBFS (h1)
 (c) Fastest Algorithm: GBFS (h1)
+(d) Lowest Path Cost: A* (h1)
+
+(e) Heuristic Comparison:
+    h1 and h2 expanded the same number of nodes in this run. Runtime, memory, and path cost should be used to decide the better heuristic.
