@@ -1199,7 +1199,7 @@ def main():
                     goal,
                     testcase_id,
                 )
-
+            print(algorithm_results)
             plot_comparative_runtime(algorithm_results)
             plot_comparative_nodes(algorithm_results)
             plot_comparative_memory(algorithm_results)
