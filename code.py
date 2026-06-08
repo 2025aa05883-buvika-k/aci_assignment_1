@@ -289,7 +289,7 @@ def get_neighbors(position, grid):
         if (
             0 <= nr < len(grid)
             and 0 <= nc < len(grid[0])
-            #and grid[nr][nc] != "N"
+            and grid[nr][nc] != "N"
         ):
             neighbors.append(((nr, nc), priority))
 
