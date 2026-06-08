@@ -18,7 +18,7 @@ N N . . . . N .
 
 ===== METRICS =====
 Nodes Expanded: 32
-Runtime (ms): 0.2604
+Runtime (ms): 0.2591
 Path Length: 13
 Path Cost: 16
 Memory Usage (OPEN + CLOSED): 43

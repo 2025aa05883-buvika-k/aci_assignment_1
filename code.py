@@ -42,9 +42,9 @@ DEFAULTS = {
 # INPUT HANDLING
 # ==================================================
 
-def read_input_file(filename="inputPS4.txt"):
+def read_input_file(filename="inputPS04.txt"):
     """
-    Reads configuration parameters from inputPS4.txt.
+    Reads configuration parameters from inputPS04.txt.
 
     Expected keys:
     START_NODE, GOAL_NODE, HEURISTIC, ALGORITHM, TESTCASE_ID
@@ -842,9 +842,9 @@ def format_trap_logs(trap_logs):
     return text
 
 
-def write_output(result, grid, filename="outputPS4.txt"):
+def write_output(result, grid, filename="outputPS04.txt"):
     """
-    Writes one normal algorithm result to outputPS4.txt.
+    Writes one normal algorithm result to outputPS04.txt.
     This function no longer mixes single-result and comparison-result structures.
     """
 
@@ -1246,7 +1246,7 @@ def main():
         else:
             raise ValueError("Unsupported algorithm and heuristic combination.")
 
-        write_output(result, grid, "outputPS4.txt")
+        write_output(result, grid, "outputPS04.txt")
         print_result_summary(result, grid)
         
         # --------------------------------------------------
@@ -1265,7 +1265,7 @@ def main():
         heuristic_results = compare_heuristics(grid, start, goal, testcase_id)
         
 
-        print("\nResults written to outputPS4.txt")
+        print("\nResults written to outputPS04.txt")
         
       
         if not result["found"]:
